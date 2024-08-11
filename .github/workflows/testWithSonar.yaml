@@ -115,6 +115,11 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install Java 17
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk
+
       - name: Install SonarScanner
         run: |
           sudo apt-get update
