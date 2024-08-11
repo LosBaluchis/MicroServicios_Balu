@@ -5,9 +5,11 @@ on:
     branches:
       - develop
     types: [opened, synchronize, reopened]
+
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v2
 
@@ -16,14 +18,21 @@ jobs:
         with:
           python-version: 3.12
 
-
       - name: Assume Role
         run: |
-          CREDS=$(aws sts assume-role --role-arn arn:aws:iam::38149224246:role/baluchis-LambdaExecutionRole-rtRljXpFMlPb)
-          export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.Credentials.AccessKeyId')
-          export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.Credentials.SecretAccessKey')
-          export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.Credentials.SessionToken')
-          
+          CREDS=$(aws sts assume-role \
+            --role-arn arn:aws:iam::38149224246:role/baluchis-LambdaExecutionRole-rtRljXpFMlPb \
+            --role-session-name github-actions-session \
+            --output json)
+
+          # Mostrar la salida para depuración (opcional)
+          echo "CREDS: $CREDS"
+
+          # Exportar las credenciales a las variables de entorno
+          echo "AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.Credentials.AccessKeyId')" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.Credentials.SecretAccessKey')" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.Credentials.SessionToken')" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
           # Instalar dependencias desde los requirements.txt de todas las carpetas relevantes
@@ -40,18 +49,17 @@ jobs:
           # pip install -r view_sales_history_per_day/requirements.txt
           pip install -r tests/requirements.txt
           pip install pytest-cov
-        
+
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=/home/runner/work/MicroServicios_Balu/MicroServicios_Balu" >> $GITHUB_ENV
-    
+
       - name: Run tests and generate coverage
         working-directory: /home/runner/work/MicroServicios_Balu/MicroServicios_Balu
         run: |
-         pytest --cov-config=.coveragerc --cov=save_category --cov-report=xml --cov-report=term
+          pytest --cov-config=.coveragerc --cov=save_category --cov-report=xml --cov-report=term
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master 
-      
+        uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
