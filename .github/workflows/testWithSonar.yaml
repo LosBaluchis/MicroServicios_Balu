@@ -113,7 +113,7 @@ jobs:
       - name: Set up Java 17
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
+          java-version: '11'
           distribution: 'temurin'
 
       - name: Install SonarScanner
