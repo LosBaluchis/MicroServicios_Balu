@@ -36,10 +36,50 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-2
 
+  test:
+    name: Run Tests and Generate Coverage
+    runs-on: ubuntu-latest
+    needs: check-aws-credentials  # Se asegura de que las credenciales se hayan verificado antes
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          #pip install -r cancel_sales/requirements.txt
+          #pip install -r change_status_category_or_product/requirements.txt
+          #pip install -r get_category/requirements.txt
+          #pip install -r get_one_product/requirements.txt
+          #pip install -r get_products/requirements.txt
+          #pip install -r login/requirements.txt
+          #pip install -r newPassword/requirements.txt
+          pip install -r save_category/requirements.txt
+          #pip install -r save_sale/requirements.txt
+          #pip install -r update_product/requirements.txt
+          #pip install -r view_sales_history_per_day/requirements.txt
+          #pip install -r test/requirements.txt
+          pip install pytest-cov
+
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=/home/runner/work/Servicios_Cafe_Balu/Servicios_Cafe_Balu" >> $GITHUB_ENV
+
+      - name: Run tests and generate coverage
+        working-directory: /home/runner/work/Servicios_Cafe_Balu/Servicios_Cafe_Balu
+        run: |
+          pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
+
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
-    needs: check-aws-credentials  # Se asegura de que las credenciales se hayan verificado antes
+    needs: test  # Se asegura de que las pruebas y la cobertura se hayan generado antes
 
     steps:
       - name: Checkout code
