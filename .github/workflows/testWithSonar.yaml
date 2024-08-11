@@ -1,64 +1,59 @@
-name: Test with Sonar
+name: Build, Test with Sonar and Check AWS Credentials
 
 on:
-  pull_request:
+  push:
     branches:
-      - develop
+      - main
+  pull_request:
     types: [opened, synchronize, reopened]
 
 jobs:
-  test:
+  check-aws-credentials:
+    name: Check AWS Credentials
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.12
+          python-version: '3.12'
 
-      - name: Assume Role
+      - name: Install AWS CLI
         run: |
-          CREDS=$(aws sts assume-role --role-arn arn:aws:iam::38149224246:role/baluchis-LambdaExecutionRole-rtRljXpFMlPb --role-session-name github-actions-session --output json 2>&1)
-          # Mostrar la salida para depuración (opcional)
-          echo "CREDS: $CREDS"
+          sudo apt-get update
+          sudo apt-get install -y awscli
 
-          # Exportar las credenciales a las variables de entorno
-          echo "AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.Credentials.AccessKeyId')" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.Credentials.SecretAccessKey')" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.Credentials.SessionToken')" >> $GITHUB_ENV
-
-      - name: Install dependencies
+      - name: Verify AWS Credentials
         run: |
-          # Instalar dependencias desde los requirements.txt de todas las carpetas relevantes
-          # pip install -r cancel_sales/requirements.txt
-          # pip install -r change_status_category_or_product/requirements.txt
-          # pip install -r get_category/requirements.txt
-          # pip install -r get_one_product/requirements.txt
-          # pip install -r get_products/requirements.txt
-          # pip install -r login/requirements.txt
-          # pip install -r newPassword/requirements.txt
-          pip install -r save_category/requirements.txt
-          # pip install -r save_sale/requirements.txt
-          # pip install -r update_product/requirements.txt
-          # pip install -r view_sales_history_per_day/requirements.txt
-          pip install -r tests/requirements.txt
-          pip install pytest-cov
+          aws sts get-caller-identity
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-2
 
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=/home/runner/work/MicroServicios_Balu/MicroServicios_Balu" >> $GITHUB_ENV
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    needs: check-aws-credentials  # Se asegura de que las credenciales se hayan verificado antes
 
-      - name: Run tests and generate coverage
-        working-directory: /home/runner/work/MicroServicios_Balu/MicroServicios_Balu
-        run: |
-          pytest --cov-config=.coveragerc --cov=save_category --cov-report=xml --cov-report=term
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12'
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-2
