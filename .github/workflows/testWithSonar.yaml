@@ -67,6 +67,8 @@ jobs:
           #pip install -r view_sales_history_per_day/requirements.txt
           #pip install -r test/requirements.txt
           pip install pytest-cov
+          pip install botocore==1.27.32
+
 
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=/home/runner/work/MicroServicios_Balu/MicroServicios_Balu" >> $GITHUB_ENV
