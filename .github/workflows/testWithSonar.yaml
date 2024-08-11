@@ -69,10 +69,10 @@ jobs:
           pip install pytest-cov
 
       - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=/home/runner/work/Servicios_Cafe_Balu/Servicios_Cafe_Balu" >> $GITHUB_ENV
+        run: echo "PYTHONPATH=/home/runner/work/MicroServicios_Balu/MicroServicios_Balu" >> $GITHUB_ENV
 
       - name: Run tests and generate coverage
-        working-directory: /home/runner/work/Servicios_Cafe_Balu/Servicios_Cafe_Balu
+        working-directory: /home/runner/work/MicroServicios_Balu/MicroServicios_Balu
         run: |
           pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
 
