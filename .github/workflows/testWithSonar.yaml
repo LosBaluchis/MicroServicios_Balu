@@ -84,7 +84,10 @@ jobs:
           pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
           
       - name: Verify Coverage Report
-        run: ls -la /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
+        run: |
+          ls -la /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
+          cat /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
+
 
   sonarcloud:
     name: SonarCloud
