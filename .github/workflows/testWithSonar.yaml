@@ -115,11 +115,12 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: SonarCloud Scan
+      - name: Print working directory and contents
         run: |
           echo "Current working directory:"
           pwd
-          sonar-scanner
+          echo "Contents of the directory:"
+          ls -l
           
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}  # Needed to get PR information, if any
