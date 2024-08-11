@@ -123,6 +123,9 @@ jobs:
           sudo update-alternatives --install /usr/bin/javac javac /usr/lib/jvm/java-17-openjdk-amd64/bin/javac 1
           echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" | sudo tee -a /etc/environment
           echo "PATH=$PATH:/usr/lib/jvm/java-17-openjdk-amd64/bin" | sudo tee -a /etc/environment
+          
+      - name: Reload environment
+        run: source /etc/environment
 
       - name: Install SonarScanner
         run: |
