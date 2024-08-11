@@ -19,10 +19,7 @@ jobs:
 
       - name: Assume Role
         run: |
-          CREDS=$(aws sts assume-role \
-                      --role-arn arn:aws:iam::381492242461:role/baluchis-LambdaExecutionRole-rtRljXpFMlPb \
-                      --role-session-name github-actions-session \
-                      --output json)
+          CREDS=$(aws sts assume-role --role-arn arn:aws:iam::381492242461:role/baluchis-LambdaExecutionRole-rtRljXpFMlPb --role-session-name github-actions-session --output json)
           echo "AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.Credentials.AccessKeyId')" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.Credentials.SecretAccessKey')" >> $GITHUB_ENV
           echo "AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.Credentials.SessionToken')" >> $GITHUB_ENV
