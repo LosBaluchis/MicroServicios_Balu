@@ -93,11 +93,18 @@ jobs:
           pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
            echo "Coverage report generated at:"
           ls -la coverage.xml
+          pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
+          echo "Coverage report generated at:"
+          echo "$(pwd)/coverage.xml"
+          ls -la coverage.xml
+          mv coverage.xml /home/runner/work/MicroServicios_Balu/
+          echo "Coverage report moved to:"
+          ls -la /home/runner/work/MicroServicios_Balu/coverage.xml
           
       - name: Verify Coverage Report
         run: |
-          ls -la /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
-          cat /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
+          ls -la /home/runner/work/MicroServicios_Balu/coverage.xml
+          cat /home/runner/work/MicroServicios_Balu/coverage.xml
 
   sonarcloud:
     name: SonarCloud
@@ -114,13 +121,21 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.12'
-
+      
       - name: Print working directory and contents
         run: |
-          echo "Current working directory:"
-          pwd
-          echo "Contents of the directory:"
-          ls -l
+          mv coverage.xml /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/
+          echo "Coverage report moved to:"
+          ls -la /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
+
+          
+      - name: Print coverage.xlm
+        run: |
+          cat /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
+
+      - name: Print coverage.xlm
+        run: |
+          sonar-scanner
           
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}  # Needed to get PR information, if any
