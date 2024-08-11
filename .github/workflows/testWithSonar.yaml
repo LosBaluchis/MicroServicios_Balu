@@ -106,7 +106,10 @@ jobs:
           python-version: '3.12'
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        run: |
+          cd /home/runner/work/MicroServicios_Balu/MicroServicios_Balu
+          sonar-scanner
+          
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
