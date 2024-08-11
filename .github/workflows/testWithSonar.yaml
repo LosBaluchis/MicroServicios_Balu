@@ -1,12 +1,10 @@
 name: Test with Sonar
 
 on:
-  push:
+  pull_request:
     branches:
       - develop
-  pull_request:
     types: [opened, synchronize, reopened]
-
 jobs:
   test:
     runs-on: ubuntu-latest
