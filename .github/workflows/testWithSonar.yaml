@@ -93,6 +93,11 @@ jobs:
           pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
            echo "Coverage report generated at:"
           ls -la coverage.xml
+          
+      - name: Verify Coverage Report
+        run: |
+          ls -la /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
+          cat /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
 
   sonarcloud:
     name: SonarCloud
@@ -109,22 +114,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.12'
-      - name: Verify Coverage Report
-        run: |
-          ls -la /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
-          cat /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
-          
-      - name: Print working directory
-        run: |
-          echo "Current working directory:"
-          pwd
-          echo "Contents of the directory:"
-          ls -la
-          echo "Contents of the directory /home/runner/work/MicroServicios_Balu/MicroServicios_Balu:"
-          ls -la /home/runner/work/MicroServicios_Balu/MicroServicios_Balu
 
       - name: SonarCloud Scan
         run: |
+          echo "Current working directory:"
+          pwd
           sonar-scanner
           
         env:
