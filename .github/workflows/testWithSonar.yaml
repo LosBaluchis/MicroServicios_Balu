@@ -69,6 +69,15 @@ jobs:
           pip install pytest-cov
           pip install botocore==1.27.32
           pip install boto3
+        
+      - name: Install SonarScanner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+          unzip sonar-scanner-cli-4.8.0.2856-linux.zip
+          sudo mv sonar-scanner-4.8.0.2856-linux /opt/sonar-scanner
+          sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/bin/sonar-scanner
 
 
       - name: Set PYTHONPATH
@@ -82,6 +91,8 @@ jobs:
           AWS_DEFAULT_REGION: us-east-2
         run: |
           pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
+           echo "Coverage report generated at:"
+          ls -la coverage.xml
           
       - name: Verify Coverage Report
         run: |
@@ -94,6 +105,8 @@ jobs:
           pwd
           echo "Contents of the directory:"
           ls -la
+          echo "Contents of the directory /home/runner/work/MicroServicios_Balu/MicroServicios_Balu:"
+          ls -la /home/runner/work/MicroServicios_Balu/MicroServicios_Balu
 
       - name: SonarCloud Scan
         run: |
