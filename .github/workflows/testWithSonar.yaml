@@ -20,11 +20,7 @@ jobs:
 
       - name: Assume Role
         run: |
-          CREDS=$(aws sts assume-role \
-            --role-arn arn:aws:iam::38149224246:role/baluchis-LambdaExecutionRole-rtRljXpFMlPb \
-            --role-session-name github-actions-session \
-            --output json)
-
+          CREDS=$(aws sts assume-role --role-arn arn:aws:iam::38149224246:role/baluchis-LambdaExecutionRole-rtRljXpFMlPb --role-session-name github-actions-session --output json 2>&1)
           # Mostrar la salida para depuración (opcional)
           echo "CREDS: $CREDS"
 
