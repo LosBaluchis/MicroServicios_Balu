@@ -104,10 +104,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.12'
-
+      - name: Print working directory
+        run: |
+          echo "Current working directory:"
+          pwd
+          echo "Contents of the directory:"
+          ls -la
+          
       - name: SonarCloud Scan
         run: |
-          cd /home/runner/work/MicroServicios_Balu/MicroServicios_Balu
           sonar-scanner
           
         env:
