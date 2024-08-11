@@ -113,7 +113,7 @@ jobs:
       - name: Set up Java 17
         uses: actions/setup-java@v3
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Install SonarScanner
@@ -129,6 +129,20 @@ jobs:
         run: |
           sonar-scanner --version
 
+      - name: Download coverage report
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-report
+
+      - name: Print coverage.xml
+        run: |
+          cat coverage.xml
+
+      - name: Run SonarCloud Scanner
+        run: |
+          export JAVA_HOME=/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.12-7/x64
+          export PATH=$JAVA_HOME/bin:$PATH
+          sonar-scanner
       - name: Download coverage report
         uses: actions/download-artifact@v3
         with:
