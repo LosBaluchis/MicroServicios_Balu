@@ -32,7 +32,7 @@ jobs:
           # pip install -r save_sale/requirements.txt
           # pip install -r update_product/requirements.txt
           # pip install -r view_sales_history_per_day/requirements.txt
-          # pip install -r test/requirements.txt
+          pip install -r test/requirements.txt
 
      
         
