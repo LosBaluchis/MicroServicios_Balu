@@ -86,13 +86,10 @@ jobs:
       - name: Run tests and generate coverage
         working-directory: /home/runner/work/MicroServicios_Balu/MicroServicios_Balu
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-2
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: us-east-2
         run: |
-          pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
-           echo "Coverage report generated at:"
-          ls -la coverage.xml
           pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
           echo "Coverage report generated at:"
           echo "$(pwd)/coverage.xml"
@@ -100,6 +97,12 @@ jobs:
           mv coverage.xml /home/runner/work/MicroServicios_Balu/
           echo "Coverage report moved to:"
           ls -la /home/runner/work/MicroServicios_Balu/coverage.xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: /home/runner/work/MicroServicios_Balu/coverage.xml
           
       - name: Verify Coverage Report
         run: |
@@ -122,20 +125,25 @@ jobs:
         with:
           python-version: '3.12'
       
+      - name: Download coverage report
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-report
+
       - name: Print working directory and contents
         run: |
-          mv coverage.xml /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/
-          echo "Coverage report moved to:"
-          ls -la /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
+          echo "Current working directory:"
+          pwd
+          echo "Contents of the directory:"
+          ls -la
 
-          
-      - name: Print coverage.xlm
+      - name: Print coverage.xml
         run: |
-          cat /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
-
-      - name: Print coverage.xlm
+          cat coverage.xml
+  
+      - name: Run SonarCloud Scanner
         run: |
-          sonar-scanner
+            sonar-scanner
           
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}  # Needed to get PR information, if any
