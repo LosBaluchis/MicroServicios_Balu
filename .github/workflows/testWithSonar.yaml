@@ -110,10 +110,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Java 11
+      - name: Set up Java 17
         uses: actions/setup-java@v3
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Install SonarScanner
@@ -128,16 +128,6 @@ jobs:
       - name: Verify SonarScanner installation
         run: |
           sonar-scanner --version
-
-      - name: Reload environment
-        run: source ~/.bashrc
-
-      - name: Print working directory and contents
-        run: |
-          echo "Current working directory:"
-          pwd
-          echo "Contents of the directory:"
-          ls -la
 
       - name: Download coverage report
         uses: actions/download-artifact@v3
