@@ -93,7 +93,22 @@ jobs:
           pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
            echo "Coverage report generated at:"
           ls -la coverage.xml
-          
+
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    needs: test  # Se asegura de que las pruebas y la cobertura se hayan generado antes
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12'
       - name: Verify Coverage Report
         run: |
           ls -la /home/runner/work/MicroServicios_Balu/MicroServicios_Balu/coverage.xml
