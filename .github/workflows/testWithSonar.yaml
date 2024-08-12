@@ -68,6 +68,8 @@ jobs:
           AWS_DEFAULT_REGION: us-east-2
         run: |
           pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
+          ls -R
+
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
