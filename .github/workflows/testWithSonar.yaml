@@ -50,6 +50,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Create coverage report directory
+        run: mkdir -p coverage-reports
+        
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
