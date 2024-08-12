@@ -74,6 +74,10 @@ jobs:
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
+        with:
+          args: >
+            -Dsonar.sources=.
+            -Dsonar.python.coverage.reportPaths=coverage.xml
         
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
