@@ -1,4 +1,4 @@
-https://github.com/LosBaluchis/MicroServicios_Balu/tree/save_categoryname: Build, Test with Sonar and Check AWS Credentials
+name: Build, Test with Sonar and Check AWS Credentials
 
 on:
   push:
