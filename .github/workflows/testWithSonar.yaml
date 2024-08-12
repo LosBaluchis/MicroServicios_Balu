@@ -69,6 +69,7 @@ jobs:
         run: |
           pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
           ls -R
+          cat coverage.xml
 
 
       - name: SonarCloud Scan
