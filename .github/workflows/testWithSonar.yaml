@@ -58,7 +58,7 @@ jobs:
           pip install pytest-cov boto3 botocore==1.27.32
 
       - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=/home/runner/work/MicroServicios_Balu/MicroServicios_Balu" >> $GITHUB_ENV
+        run: echo "PYTHONPATH=$PYTHONPATH:/home/runner/work/MicroServicios_Balu/MicroServicios_Balu" >> $GITHUB_ENV
 
       - name: Run tests and generate coverage
         working-directory: /home/runner/work/MicroServicios_Balu/MicroServicios_Balu
@@ -68,7 +68,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-2
         run: |
           pytest --cov-config .coveragerc --cov=save_category --cov-report=xml --cov-report=term
-          mv coverage.xml /home/runner/work/MicroServicios_Balu/
+          mv coverage.xml $GITHUB_WORKSPACE/
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v3
