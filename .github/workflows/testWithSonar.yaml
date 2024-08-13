@@ -62,11 +62,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-2
         run: |
-          pwd  
-          ls -l
-          coverage run -m unittest discover -v -s /tests/unit
-          coverage xml -o coverage-python.xml
-          coverage report -m
+          coverage run -m unittest discover -s tests/unit
+          coverage xml  # Generate coverage.xml file
           
       - name: Store coverage report
         uses: actions/upload-artifact@v3
