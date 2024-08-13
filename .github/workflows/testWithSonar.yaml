@@ -63,6 +63,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-2
         run: |
+          pwd
           pytest --cov=save_category --cov-report=xml --cov-report=html
         
       - name: SonarCloud Scan
