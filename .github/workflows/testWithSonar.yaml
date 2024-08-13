@@ -61,17 +61,21 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-2
-        run: |
-          coverage run -m unittest discover -s tests/unit
-          coverage xml  # Generate coverage.xml file
-          
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install tox and any other packages
+        run: pip install tox
+      - name: Run tox
+        run: tox -e py
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.python.coverage.reportPaths=coverage-python.xml
 
