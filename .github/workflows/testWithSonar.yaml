@@ -54,8 +54,10 @@ jobs:
           pip install -r requirements.txt
           pip install coverage pytest-cov boto3 botocore==1.27.32
 
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
+        
       - name: Run tests and generate coverage
-        working-directory: /home/runner/work/MicroServicios_Balu/MicroServicios_Balu
         run: |
           pytest --cov=save_category --cov-report=xml --cov-report=html
         
@@ -63,8 +65,8 @@ jobs:
         uses: SonarSource/sonarcloud-github-action@master
         with:
           args: >
-            -Dsonar.projectKey=LosBaluchis_MicroServicios_Balu
-            -Dsonar.organization=losbaluchis
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
             -Dsonar.python.coverage.reportPaths=coverage.xml
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
