@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock, Mock
 
 from botocore.exceptions import ClientError
 
-from save_category import app
+from save_category.app import app
 
 class TestSaveCategory(unittest.TestCase):
 
