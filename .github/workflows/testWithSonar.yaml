@@ -49,9 +49,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
-
-      - name: Create coverage report directory
-        run: mkdir -p coverage-reports
         
       - name: Install dependencies
         run: |
@@ -68,14 +65,14 @@ jobs:
           pwd  
           ls -l
           coverage run -m unittest discover -v -s /tests/unit
-          coverage xml -o coverage-reports/coverage-python.xml
+          coverage xml -o coverage-python.xml
           coverage report -m
           
       - name: Store coverage report
         uses: actions/upload-artifact@v3
         with:
           name: coverage-report
-          path: coverage-reports/coverage-python.xml
+          path: coverage-python.xml
 
   sonarcloud:
     needs: test
@@ -89,16 +86,14 @@ jobs:
         with:
           name: coverage-report
           path: coverage-reports
+          
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-2
         with:
           args: >
-            -Dsonar.python.coverage.reportPaths=coverage-reports/coverage-python.xml
+            -Dsonar.python.coverage.reportPaths=coverage-python.xml
 
