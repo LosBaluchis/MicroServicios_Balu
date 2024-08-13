@@ -70,8 +70,8 @@ jobs:
         uses: SonarSource/sonarcloud-github-action@master
         with:
           args: >
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
-            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=LosBaluchis_MicroServicios_Balu
+            -Dsonar.organization=losbaluchis
             -Dsonar.python.coverage.reportPaths=coverage.xml
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
