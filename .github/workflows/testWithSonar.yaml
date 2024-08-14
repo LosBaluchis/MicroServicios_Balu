@@ -47,7 +47,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
-        
+    
+      - name: Install dependencies
+        run: |
+            python -m pip install --upgrade pip
+            pip install tox boto3 botocore==1.27.32
+            
       - name: Run tests and generate coverage with tox
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
