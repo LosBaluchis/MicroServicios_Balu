@@ -3,15 +3,9 @@ import pymysql
 import logging
 import re
 import boto3
-from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+from botocore.exceptions import ClientError
 
 def get_secret():
-    """
-    Obtiene las credenciales de la base de datos desde AWS Secrets Manager.
-    """
     secret_name = "secretsForBalu"
     region_name = "us-east-2"
 
@@ -25,24 +19,22 @@ def get_secret():
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
-        return json.loads(get_secret_value_response['SecretString'])
-    except NoCredentialsError as e:
-        logger.error("No AWS credentials found")
-        raise e
-    except PartialCredentialsError as e:
-        logger.error("Incomplete AWS credentials")
-        raise e
     except ClientError as e:
-        error_code = e.response['Error']['Code']
-        if error_code == 'ResourceNotFoundException':
-            logger.error("The requested secret was not found.")
-        elif error_code == 'InvalidRequestException':
-            logger.error("The request was invalid due to incorrect parameters.")
-        elif error_code == 'AccessDeniedException':
-            logger.error("Access denied to the requested secret.")
+        if e.response['Error']['Code'] == 'DecryptionFailureException':
+            raise Exception("Secrets Manager no pudo descifrar el secreto utilizando la clave KMS especificada.")
+        elif e.response['Error']['Code'] == 'InternalServiceErrorException':
+            raise Exception("Ocurrió un error interno en Secrets Manager.")
+        elif e.response['Error']['Code'] == 'InvalidParameterException':
+            raise Exception("Uno o más de los parámetros especificados no son válidos.")
+        elif e.response['Error']['Code'] == 'InvalidRequestException':
+            raise Exception("La solicitud no fue válida. Verifica los parámetros.")
+        elif e.response['Error']['Code'] == 'ResourceNotFoundException':
+            raise Exception("El secreto solicitado no se encontró.")
         else:
-            logger.error(f"Unexpected error: {e}")
-        raise e
+            raise e
+
+    secret = get_secret_value_response['SecretString']
+    return json.loads(secret)
 
 # Obtener las credenciales desde Secrets Manager
 secrets = get_secret()
@@ -50,6 +42,9 @@ rds_host = secrets["host"]
 rds_user = secrets["username"]
 rds_password = secrets["password"]
 rds_db = secrets["dbname"]
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def lambda_handler(event, __):
     headers = {
@@ -84,7 +79,7 @@ def lambda_handler(event, __):
             }
 
         # Verificar caracteres no permitidos
-        if re.search(r'[<>/`\\{}]', name):
+        if re.search(r'[<>/``\\{}]', name):
             logger.warning("Invalid characters in name")
             return {
                 "statusCode": 400,
@@ -105,8 +100,7 @@ def lambda_handler(event, __):
                 }),
             }
 
-        save_category(name)
-
+        save_category(name, headers)
         return {
             "statusCode": 200,
             "headers": headers,
@@ -124,7 +118,6 @@ def lambda_handler(event, __):
             }),
         }
     except KeyError as e:
-        logger.error(f"Missing key: {e}")
         return {
             "statusCode": 400,
             "headers": headers,
@@ -134,7 +127,6 @@ def lambda_handler(event, __):
             }),
         }
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
         return {
             "statusCode": 500,
             "headers": headers,
@@ -145,39 +137,44 @@ def lambda_handler(event, __):
         }
 
 def is_name_duplicate(name):
-    """
-    Verifica si el nombre de la categoría ya existe en la base de datos.
-    """
+    connection = pymysql.connect(host=rds_host, user=rds_user, password=rds_password, db=rds_db)
     try:
-        connection = pymysql.connect(host=rds_host, user=rds_user, password=rds_password, db=rds_db)
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM categories WHERE name = %s", (name,))
-            result = cursor.fetchone()
-            return result[0] > 0
-    except pymysql.MySQLError as e:
+        cursor = connection.cursor()
+        cursor.execute("SELECT COUNT(*) FROM categories WHERE name = %s", (name,))
+        result = cursor.fetchone()
+        return result[0] > 0
+    except Exception as e:
         logger.error("Database query error: %s", str(e))
-        raise e
+        return False
     finally:
         connection.close()
 
-def save_category(name):
-    """
-    Guarda una nueva categoría en la base de datos.
-    """
+def save_category(name, headers):
+    print(f"name: {name}, headers: {headers}")
+    connection = pymysql.connect(host=rds_host, user=rds_user, password=rds_password, db=rds_db)
     try:
-        connection = pymysql.connect(host=rds_host, user=rds_user, password=rds_password, db=rds_db)
-        with connection.cursor() as cursor:
-            cursor.execute("INSERT INTO categories (name, status) VALUES (%s, true)", (name,))
-            connection.commit()
-            logger.info("Database insert successful for name=%s", name)
+        cursor = connection.cursor()
+        cursor.execute("INSERT INTO categories (name, status) VALUES (%s, true)", (name,))
+        connection.commit()
+        logger.info("Database create successfully for name=%s", name)
     except pymysql.err.IntegrityError as e:
-        logger.error("Integrity error: Duplicate entry or constraint violation")
-        raise e
-    except pymysql.err.OperationalError as e:
-        logger.error("Operational error: Database is unavailable or access denied")
-        raise e
-    except pymysql.MySQLError as e:
-        logger.error("Unexpected database error: %s", str(e))
-        raise e
+        if e.args[0] == 1062:  # Código de error para duplicado
+            logger.error("Error de integridad en la base de datos: %s", str(e))
+            return {
+                "statusCode": 400,
+                "headers": headers,
+                "body": json.dumps({
+                    "message": "El nombre de la categoría ya existe. Por favor, elige otro."
+                }),
+            }
+    except pymysql.Error as e:
+        logger.error("Error en la base de datos: %s", str(e))
+        return {
+            "statusCode": 500,
+            "headers": headers,
+            "body": json.dumps({
+                "message": "Error al guardar la categoría. Por favor, inténtalo de nuevo más tarde."
+            }),
+        }
     finally:
         connection.close()
