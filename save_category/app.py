@@ -25,12 +25,13 @@ def get_secret():
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
-    except ClientError:
+    except ClientError as e:
         return {
                 "statusCode": 403,
                 "headers": headers,
                 "body": json.dumps({
-                    "message": "CONNECTION_ERROR"
+                    "message": "CONNECTION_ERROR",
+                    "error": str(e)
                 }),
             }
 
@@ -118,7 +119,7 @@ def lambda_handler(event, __):
                 "message": "INVALID_JSON_FORMAT"
             }),
         }
-    except KeyError:
+    except KeyError as e:
         return {
             "statusCode": 400,
             "headers": headers,
@@ -127,7 +128,7 @@ def lambda_handler(event, __):
                 "error": str(e)
             }),
         }
-    except Exception:
+    except Exception as e:
         return {
             "statusCode": 500,
             "headers": headers,
@@ -144,7 +145,7 @@ def is_name_duplicate(name):
         cursor.execute("SELECT COUNT(*) FROM categories WHERE name = %s", (name,))
         result = cursor.fetchone()
         return result[0] > 0
-    except Exception:
+    except Exception as e:
         logger.error("Database query error: %s", str(e))
         return False
     finally:
@@ -157,7 +158,7 @@ def save_category(name, headers):
         cursor.execute("INSERT INTO categories (name, status) VALUES (%s, true)", (name,))
         connection.commit()
         logger.info("Database create successfully for name=%s", name)
-    except Exception:
+    except Exception as e:
         logger.error("Database update error: %s", str(e))
         return {
             "statusCode": 500,
