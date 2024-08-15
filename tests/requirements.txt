@@ -2,4 +2,3 @@ pytest
 boto3
 requests
 mysql
-botocore==1.27.32
