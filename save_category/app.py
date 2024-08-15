@@ -20,18 +20,38 @@ def get_secret():
             SecretId=secret_name
         )
     except ClientError as e:
-        if e.response['Error']['Code'] == 'DecryptionFailureException':
-            raise Exception("Secrets Manager no pudo descifrar el secreto utilizando la clave KMS especificada.")
-        elif e.response['Error']['Code'] == 'InternalServiceErrorException':
-            raise Exception("Ocurrió un error interno en Secrets Manager.")
-        elif e.response['Error']['Code'] == 'InvalidParameterException':
-            raise Exception("Uno o más de los parámetros especificados no son válidos.")
-        elif e.response['Error']['Code'] == 'InvalidRequestException':
-            raise Exception("La solicitud no fue válida. Verifica los parámetros.")
-        elif e.response['Error']['Code'] == 'ResourceNotFoundException':
-            raise Exception("El secreto solicitado no se encontró.")
+        error_code = e.response['Error']['Code']
+        if error_code == 'DecryptionFailureException':
+            return {
+                "statusCode": 500,
+                "message": "Secrets Manager no pudo descifrar el secreto utilizando la clave KMS especificada."
+            }
+        elif error_code == 'InternalServiceErrorException':
+            return {
+                "statusCode": 500,
+                "message": "Ocurrió un error interno en Secrets Manager."
+            }
+        elif error_code == 'InvalidParameterException':
+            return {
+                "statusCode": 400,
+                "message": "Uno o más de los parámetros especificados no son válidos."
+            }
+        elif error_code == 'InvalidRequestException':
+            return {
+                "statusCode": 400,
+                "message": "La solicitud no fue válida. Verifica los parámetros."
+            }
+        elif error_code == 'ResourceNotFoundException':
+            return {
+                "statusCode": 404,
+                "message": "El secreto solicitado no se encontró."
+            }
         else:
-            raise e
+            return {
+                "statusCode": 500,
+                "message": "Se produjo un error inesperado en Secrets Manager.",
+                "error": str(e)
+            }
 
     secret = get_secret_value_response['SecretString']
     return json.loads(secret)
