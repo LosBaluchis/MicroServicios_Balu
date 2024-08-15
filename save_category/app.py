@@ -3,13 +3,18 @@ import pymysql
 import logging
 import re
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def get_secret():
+    """
+    Obtiene las credenciales de la base de datos desde AWS Secrets Manager.
+    """
     secret_name = "secretsForBalu"
     region_name = "us-east-2"
 
-    # Crear un cliente de Secrets Manager
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
@@ -20,13 +25,24 @@ def get_secret():
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
-    except ClientError as e:
-        # Para obtener una lista de excepciones lanzadas, vea
-        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+        return json.loads(get_secret_value_response['SecretString'])
+    except NoCredentialsError as e:
+        logger.error("No AWS credentials found")
         raise e
-
-    secret = get_secret_value_response['SecretString']
-    return json.loads(secret)
+    except PartialCredentialsError as e:
+        logger.error("Incomplete AWS credentials")
+        raise e
+    except ClientError as e:
+        error_code = e.response['Error']['Code']
+        if error_code == 'ResourceNotFoundException':
+            logger.error("The requested secret was not found.")
+        elif error_code == 'InvalidRequestException':
+            logger.error("The request was invalid due to incorrect parameters.")
+        elif error_code == 'AccessDeniedException':
+            logger.error("Access denied to the requested secret.")
+        else:
+            logger.error(f"Unexpected error: {e}")
+        raise e
 
 # Obtener las credenciales desde Secrets Manager
 secrets = get_secret()
@@ -34,9 +50,6 @@ rds_host = secrets["host"]
 rds_user = secrets["username"]
 rds_password = secrets["password"]
 rds_db = secrets["dbname"]
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
 def lambda_handler(event, __):
     headers = {
@@ -71,7 +84,7 @@ def lambda_handler(event, __):
             }
 
         # Verificar caracteres no permitidos
-        if re.search(r'[<>/``\\{}]', name):
+        if re.search(r'[<>/`\\{}]', name):
             logger.warning("Invalid characters in name")
             return {
                 "statusCode": 400,
@@ -92,7 +105,8 @@ def lambda_handler(event, __):
                 }),
             }
 
-        save_category(name, headers)
+        save_category(name)
+
         return {
             "statusCode": 200,
             "headers": headers,
@@ -110,6 +124,7 @@ def lambda_handler(event, __):
             }),
         }
     except KeyError as e:
+        logger.error(f"Missing key: {e}")
         return {
             "statusCode": 400,
             "headers": headers,
@@ -119,6 +134,7 @@ def lambda_handler(event, __):
             }),
         }
     except Exception as e:
+        logger.error(f"Unexpected error: {e}")
         return {
             "statusCode": 500,
             "headers": headers,
@@ -129,33 +145,39 @@ def lambda_handler(event, __):
         }
 
 def is_name_duplicate(name):
-    connection = pymysql.connect(host=rds_host, user=rds_user, password=rds_password, db=rds_db)
+    """
+    Verifica si el nombre de la categoría ya existe en la base de datos.
+    """
     try:
-        cursor = connection.cursor()
-        cursor.execute("SELECT COUNT(*) FROM categories WHERE name = %s", (name,))
-        result = cursor.fetchone()
-        return result[0] > 0
-    except Exception as e:
+        connection = pymysql.connect(host=rds_host, user=rds_user, password=rds_password, db=rds_db)
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM categories WHERE name = %s", (name,))
+            result = cursor.fetchone()
+            return result[0] > 0
+    except pymysql.MySQLError as e:
         logger.error("Database query error: %s", str(e))
-        return False
+        raise e
     finally:
         connection.close()
 
-def save_category(name, headers):
-    connection = pymysql.connect(host=rds_host, user=rds_user, password=rds_password, db=rds_db)
+def save_category(name):
+    """
+    Guarda una nueva categoría en la base de datos.
+    """
     try:
-        cursor = connection.cursor()
-        cursor.execute("INSERT INTO categories (name, status) VALUES (%s, true)", (name,))
-        connection.commit()
-        logger.info("Database create successfully for name=%s", name)
-    except Exception as e:
-        logger.error("Database update error: %s", str(e))
-        return {
-            "statusCode": 500,
-            "headers": headers,
-            "body": json.dumps({
-                "message": "DATABASE_ERROR"
-            }),
-        }
+        connection = pymysql.connect(host=rds_host, user=rds_user, password=rds_password, db=rds_db)
+        with connection.cursor() as cursor:
+            cursor.execute("INSERT INTO categories (name, status) VALUES (%s, true)", (name,))
+            connection.commit()
+            logger.info("Database insert successful for name=%s", name)
+    except pymysql.err.IntegrityError as e:
+        logger.error("Integrity error: Duplicate entry or constraint violation")
+        raise e
+    except pymysql.err.OperationalError as e:
+        logger.error("Operational error: Database is unavailable or access denied")
+        raise e
+    except pymysql.MySQLError as e:
+        logger.error("Unexpected database error: %s", str(e))
+        raise e
     finally:
         connection.close()
