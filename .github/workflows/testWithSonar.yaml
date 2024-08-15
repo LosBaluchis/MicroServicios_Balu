@@ -1,9 +1,6 @@
-name: Build, Test with Sonar and Check AWS Credentials
+name: Check AWS Credentials, Generate Coverage and Scan with SonarCloud
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     types: [opened, synchronize, reopened]
 
