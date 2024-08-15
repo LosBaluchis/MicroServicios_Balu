@@ -2,12 +2,55 @@ import unittest
 import json
 from unittest.mock import patch, MagicMock, Mock
 
+import pymysql
 from botocore.exceptions import ClientError
 
 from save_category import app
 
 class TestSaveCategory(unittest.TestCase):
+    @patch("save_category.app.boto3.session.Session.client")
+    def test_get_secret_success(self, mock_client):
+        mock_client_instance = mock_client.return_value
+        mock_client_instance.get_secret_value.return_value = {
+            'SecretString': '{"host": "localhost", "username": "testuser", "password": "testpassword", "dbname": "testdb"}'
+        }
 
+        result = app.get_secret()
+        expected_result = {"host": "localhost", "username": "testuser", "password": "testpassword", "dbname": "testdb"}
+        self.assertEqual(result, expected_result)
+
+    @patch("save_category.app.boto3.session.Session.client")
+    def test_get_secret_decryption_failure(self, mock_client):
+        mock_client_instance = mock_client.return_value
+        mock_client_instance.get_secret_value.side_effect = ClientError(
+            {'Error': {'Code': 'DecryptionFailureException'}}, 'GetSecretValue'
+        )
+
+        result = app.get_secret()
+        expected_result = {
+            "statusCode": 500,
+            "message": "Secrets Manager no pudo descifrar el secreto utilizando la clave KMS especificada."
+        }
+        self.assertEqual(result, expected_result)
+
+    # ... (otras pruebas para diferentes ClientError) ...
+
+    @patch("save_category.app.pymysql.connect")
+    def test_lambda_handler_key_error_on_claims(self, mock_connect):
+        event = {
+            "body": json.dumps({
+                "name": "validname"
+            }),
+            "requestContext": {
+                "authorizer": {}  # Falta la clave 'claims'
+            }
+        }
+
+        result = app.lambda_handler(event, None)
+        self.assertEqual(result["statusCode"], 400)
+        body = json.loads(result["body"])
+        self.assertEqual(body["message"], "MISSING_KEY")
+        self.assertIn("error", body)
     @patch("save_category.app.pymysql.connect")
     def test_lambda_handler_duplicate_name(self, mock_connect):
         mock_cursor = MagicMock()
@@ -128,6 +171,7 @@ class TestSaveCategory(unittest.TestCase):
 
         result = app.is_name_duplicate("newcategory")
         self.assertFalse(result)
+
     def test_lambda_handler_invalid_role(self):
         event = {
             "body": json.dumps({
@@ -147,17 +191,7 @@ class TestSaveCategory(unittest.TestCase):
         body = json.loads(result["body"])
         self.assertEqual(body["message"], "FORBIDDEN")
 
-    @patch("save_category.app.boto3.session.Session.client")
-    def test_get_secret_client_error(self, mock_client):
-        # Simula la excepción ClientError
-        mock_client_instance = mock_client.return_value
-        mock_client_instance.get_secret_value.side_effect = ClientError(
-            error_response={'Error': {'Code': 'ResourceNotFoundException', 'Message': 'Secret not found'}},
-            operation_name='GetSecretValue'
-        )
 
-        with self.assertRaises(ClientError):
-            app.get_secret()
 
     def test_lambda_handler_missing_key(self):
         event = {
@@ -199,10 +233,29 @@ class TestSaveCategory(unittest.TestCase):
         self.assertEqual(body["error"], "Unexpected error")
 
     @patch("save_category.app.pymysql.connect")
-    def test_save_category_database_error(self, mock_connect):
+    def test_save_category_integrity_error(self, mock_connect):
         mock_connection = MagicMock()
         mock_cursor = MagicMock()
-        mock_cursor.execute.side_effect = Exception("Database insert error")
+        mock_cursor.execute.side_effect = pymysql.err.IntegrityError(1062, "Duplicate entry")
+        mock_connection.cursor.return_value = mock_cursor
+        mock_connect.return_value = mock_connection
+
+        headers = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token"
+        }
+
+        result = app.save_category("validname", headers)
+
+        self.assertEqual(result["statusCode"], 400)
+        self.assertEqual(result["body"], json.dumps({"message": "El nombre de la categoría ya existe. Por favor, elige otro."}))
+
+    @patch("save_category.app.pymysql.connect")
+    def test_save_category_generic_database_error(self, mock_connect):
+        mock_connection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.execute.side_effect = pymysql.Error("Generic database error")
         mock_connection.cursor.return_value = mock_cursor
         mock_connect.return_value = mock_connection
 
@@ -215,7 +268,7 @@ class TestSaveCategory(unittest.TestCase):
         result = app.save_category("validname", headers)
 
         self.assertEqual(result["statusCode"], 500)
-        self.assertEqual(result["body"], json.dumps({"message": "DATABASE_ERROR"}))
+        self.assertEqual(result["body"], json.dumps({"message": "Error al guardar la categoría. Por favor, inténtalo de nuevo más tarde."}))
 
 if __name__ == "__main__":
     unittest.main()
