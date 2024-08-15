@@ -8,6 +8,11 @@ from botocore.exceptions import ClientError
 def get_secret():
     secret_name = "secretsForBalu"
     region_name = "us-east-2"
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token"
+    }
 
     # Crear un cliente de Secrets Manager
     session = boto3.session.Session()
@@ -20,10 +25,14 @@ def get_secret():
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
-    except ClientError as e:
-        # Para obtener una lista de excepciones lanzadas, vea
-        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-        raise e
+    except ClientError:
+        return {
+                "statusCode": 403,
+                "headers": headers,
+                "body": json.dumps({
+                    "message": "CONNECTION_ERROR"
+                }),
+            }
 
     secret = get_secret_value_response['SecretString']
     return json.loads(secret)
@@ -71,7 +80,7 @@ def lambda_handler(event, __):
             }
 
         # Verificar caracteres no permitidos
-        if re.search(r'[<>/``\\{}]', name):
+        if re.search(r'[<>/`\\{}]', name):
             logger.warning("Invalid characters in name")
             return {
                 "statusCode": 400,
@@ -109,7 +118,7 @@ def lambda_handler(event, __):
                 "message": "INVALID_JSON_FORMAT"
             }),
         }
-    except KeyError as e:
+    except KeyError:
         return {
             "statusCode": 400,
             "headers": headers,
@@ -118,7 +127,7 @@ def lambda_handler(event, __):
                 "error": str(e)
             }),
         }
-    except Exception as e:
+    except Exception:
         return {
             "statusCode": 500,
             "headers": headers,
@@ -135,7 +144,7 @@ def is_name_duplicate(name):
         cursor.execute("SELECT COUNT(*) FROM categories WHERE name = %s", (name,))
         result = cursor.fetchone()
         return result[0] > 0
-    except Exception as e:
+    except Exception:
         logger.error("Database query error: %s", str(e))
         return False
     finally:
@@ -148,7 +157,7 @@ def save_category(name, headers):
         cursor.execute("INSERT INTO categories (name, status) VALUES (%s, true)", (name,))
         connection.commit()
         logger.info("Database create successfully for name=%s", name)
-    except Exception as e:
+    except Exception:
         logger.error("Database update error: %s", str(e))
         return {
             "statusCode": 500,
